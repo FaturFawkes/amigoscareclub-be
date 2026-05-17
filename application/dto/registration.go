@@ -27,6 +27,7 @@ type RegistrationData struct {
 	Age             int        `json:"age"`
 	CoffeeChoice    string     `json:"coffee_choice"`
 	Status          string     `json:"status"`
+	Note            *string    `json:"note"`
 	PaymentProofURL *string    `json:"payment_proof_url"`
 	RegisteredAt    time.Time  `json:"registered_at"`
 	VerifiedAt      *time.Time `json:"verified_at"`

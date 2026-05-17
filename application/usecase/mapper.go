@@ -11,6 +11,11 @@ func registrationToData(reg *domain.Registration) dto.RegistrationData {
 		s := reg.PaymentProofURL
 		proofURL = &s
 	}
+	var note *string
+	if reg.Note != "" {
+		s := reg.Note
+		note = &s
+	}
 	return dto.RegistrationData{
 		ID:              string(reg.ID),
 		TicketNumber:    reg.TicketNumber,
@@ -21,6 +26,7 @@ func registrationToData(reg *domain.Registration) dto.RegistrationData {
 		Age:             reg.Runner.Age,
 		CoffeeChoice:    reg.Runner.CoffeeChoice,
 		Status:          string(reg.Status),
+		Note:            note,
 		PaymentProofURL: proofURL,
 		RegisteredAt:    reg.RegisteredAt,
 		VerifiedAt:      reg.VerifiedAt,

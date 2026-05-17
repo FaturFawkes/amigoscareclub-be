@@ -26,7 +26,7 @@ func New(cfg config.Config) *Notifier {
 	return &Notifier{
 		token:   cfg.MailtrapToken,
 		from:    cfg.EmailFrom,
-		logoURL: cfg.ServerURL + "/public/amigos-logo.jpeg",
+		logoURL: cfg.ServerURL + "/amigos-logo.jpeg",
 	}
 }
 

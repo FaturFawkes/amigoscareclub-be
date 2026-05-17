@@ -14,6 +14,9 @@ var allowedOrigins = map[string]struct{}{
 }
 
 func isAllowedOrigin(origin string) bool {
+	if _, ok := allowedOrigins["*"]; ok {
+		return true
+	}
 	if origin == "" {
 		return true
 	}
@@ -31,8 +34,12 @@ func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		if isAllowedOrigin(origin) {
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Vary", "Origin")
+			if _, ok := allowedOrigins["*"]; ok {
+				c.Header("Access-Control-Allow-Origin", "*")
+			} else {
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Vary", "Origin")
+			}
 			c.Header("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS")
 			c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		}

@@ -1,0 +1,734 @@
+openapi: 3.0.3
+
+info:
+  title: Amigos Care Club – Event Registration API
+  description: |
+    API untuk pendaftaran peserta event lari **40% OF HEART RATE RUN – VOL.2**.
+
+    ### Alur Registrasi
+    1. Peserta mengisi form di halaman `/event/40-of-heart-rate-run`.
+    2. Peserta melakukan transfer ke rekening BCA **4061207427** a.n. Nur Fatchurohman.
+    3. Peserta mengunggah bukti pembayaran bersama data diri melalui endpoint `POST /api/events/{eventSlug}/registrations`.
+    4. Sistem menyimpan data, memverifikasi bukti pembayaran, dan mengirimkan tiket via email **H-1 sebelum acara**.
+    5. Nomor tiket digunakan sebagai kupon undian doorprize saat acara.
+
+    ### Autentikasi
+    Endpoint publik tidak memerlukan autentikasi.
+    Endpoint admin menggunakan **Bearer Token** (JWT).
+  version: 1.0.0
+  contact:
+    name: Amigos Care Club
+    email: contact@amigoscareclub.id
+
+servers:
+  - url: https://api.amigoscareclub.id/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local Development
+
+tags:
+  - name: Registrations
+    description: Pendaftaran peserta event
+  - name: Events
+    description: Informasi event
+  - name: Admin Auth
+    description: Autentikasi admin (login, logout, profil)
+  - name: Admin
+    description: Manajemen registrasi (akses terbatas, perlu Bearer Token)
+
+paths:
+  /events/{eventSlug}/registrations:
+    post:
+      tags:
+        - Registrations
+      summary: Daftar sebagai peserta event
+      description: |
+        Menerima data diri peserta dan bukti pembayaran dalam satu request `multipart/form-data`.
+
+        **Validasi server-side yang wajib diterapkan:**
+        - `name`: wajib, max 100 karakter
+        - `email`: wajib, format valid, akan digunakan untuk pengiriman tiket
+        - `phone`: wajib, format nomor Indonesia (misal: `08xx`, `+628xx`)
+        - `age`: wajib, integer ≥ 10 (batas usia minimum peserta)
+        - `coffee_choice`: wajib, harus salah satu dari enum yang valid
+        - `payment_proof`: wajib, file gambar (jpeg/png/webp), max 5 MB
+
+        **Idempotency:** satu email hanya bisa mendaftar satu kali per event.
+      operationId: createEventRegistration
+      parameters:
+        - $ref: '#/components/parameters/EventSlug'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+            encoding:
+              payment_proof:
+                contentType: image/jpeg, image/png, image/webp
+      responses:
+        '201':
+          description: Pendaftaran berhasil. Tiket akan dikirim H-1 sebelum acara.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+              example:
+                data:
+                  id: reg_01J7XKZT3QABCDEF1234567890
+                  ticket_number: ACR-2026-0042
+                  event_slug: 40-of-heart-rate-run
+                  name: Budi Santoso
+                  email: budi@example.com
+                  phone: "08123456789"
+                  age: 28
+                  coffee_choice: Es Kopi Susu
+                  status: pending_verification
+                  registered_at: "2026-05-17T09:00:00Z"
+                meta:
+                  message: "Pendaftaran berhasil! Tiket akan dikirimkan H-1 sebelum acara ke email kamu."
+        '400':
+          description: Input tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                error:
+                  code: VALIDATION_ERROR
+                  message: Input tidak valid
+                  details:
+                    - field: email
+                      message: Format email tidak valid
+                    - field: payment_proof
+                      message: File harus berupa gambar (jpeg/png/webp) maksimal 5 MB
+        '409':
+          description: Email sudah terdaftar untuk event ini
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: DUPLICATE_REGISTRATION
+                  message: Email budi@example.com sudah terdaftar untuk event ini.
+        '404':
+          description: Event tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: EVENT_NOT_FOUND
+                  message: Event dengan slug '40-of-heart-rate-run' tidak ditemukan.
+        '413':
+          description: File bukti pembayaran terlalu besar (maks. 5 MB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Kesalahan server internal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /events/{eventSlug}/registrations/{registrationId}:
+    get:
+      tags:
+        - Registrations
+      summary: Cek status registrasi
+      description: |
+        Mengambil detail status registrasi berdasarkan ID.
+        Berguna untuk polling status setelah submit, atau konfirmasi ulang peserta.
+      operationId: getRegistration
+      parameters:
+        - $ref: '#/components/parameters/EventSlug'
+        - $ref: '#/components/parameters/RegistrationId'
+      responses:
+        '200':
+          description: Detail registrasi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '404':
+          description: Registrasi tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /events/{eventSlug}:
+    get:
+      tags:
+        - Events
+      summary: Detail event
+      description: Mengambil informasi lengkap sebuah event berdasarkan slug.
+      operationId: getEvent
+      parameters:
+        - $ref: '#/components/parameters/EventSlug'
+      responses:
+        '200':
+          description: Detail event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+              example:
+                data:
+                  slug: 40-of-heart-rate-run
+                  title: 40% OF HEART RATE RUN – VOL.2
+                  date: "2026-05-24"
+                  time: "06:00"
+                  timezone: Asia/Jakarta
+                  location: Melkkops Coffee & Eatry
+                  distance_km: 5
+                  pace: Every pace welcome
+                  registration_open: true
+                  coffee_options:
+                    - Americano
+                    - Cappuccino
+                    - Latte
+                    - Es Kopi Susu
+                    - Espresso
+                  payment:
+                    bank: BCA
+                    account_number: "4061207427"
+                    account_name: Nur Fatchurohman
+        '404':
+          description: Event tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/auth/login:
+    post:
+      tags:
+        - Admin Auth
+      summary: Login admin
+      description: |
+        Autentikasi admin dengan email dan password.
+        Response berisi Bearer Token (JWT) yang wajib disertakan sebagai
+        header `Authorization: Bearer <token>` pada semua endpoint admin.
+      operationId: adminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: admin@amigoscareclub.id
+              password: "secret"
+      responses:
+        '200':
+          description: Login berhasil, token dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                data:
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example
+                  expires_at: "2026-05-18T09:00:00Z"
+                  admin:
+                    id: adm_01J7XKZT00000000000000001
+                    name: Nur Fatchurohman
+                    email: admin@amigoscareclub.id
+        '401':
+          description: Kredensial tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: INVALID_CREDENTIALS
+                  message: Email atau password salah.
+        '422':
+          description: Input tidak valid (field kosong / format salah)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /admin/auth/me:
+    get:
+      tags:
+        - Admin Auth
+      summary: Profil admin aktif
+      description: |
+        Memvalidasi Bearer Token yang aktif dan mengembalikan data profil admin.
+        Berguna sebagai health-check autentikasi di sisi frontend saat pertama kali load dashboard.
+      operationId: adminGetMe
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profil admin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminProfile'
+              example:
+                data:
+                  id: adm_01J7XKZT00000000000000001
+                  name: Nur Fatchurohman
+                  email: admin@amigoscareclub.id
+        '401':
+          description: Token tidak valid atau sudah expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: UNAUTHORIZED
+                  message: Token tidak valid atau sudah habis masa berlakunya.
+
+  /admin/auth/logout:
+    post:
+      tags:
+        - Admin Auth
+      summary: Logout admin
+      description: |
+        Invalidasi token sisi server (blacklist JWT).
+        Frontend tetap wajib menghapus token dari storage secara lokal.
+      operationId: adminLogout
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Logout berhasil, tidak ada response body
+        '401':
+          description: Token tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/events/{eventSlug}/registrations:
+    get:
+      tags:
+        - Admin
+      summary: List semua registrasi (Admin)
+      description: Mengambil daftar seluruh peserta terdaftar untuk sebuah event.
+      operationId: adminListRegistrations
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EventSlug'
+        - name: status
+          in: query
+          description: Filter berdasarkan status registrasi
+          schema:
+            $ref: '#/components/schemas/RegistrationStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Daftar registrasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Registration'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Token tidak valid atau tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/events/{eventSlug}/registrations/{registrationId}/verify:
+    patch:
+      tags:
+        - Admin
+      summary: Verifikasi pembayaran (Admin)
+      description: |
+        Mengubah status registrasi setelah admin memverifikasi bukti pembayaran.
+        Saat status menjadi `verified`, sistem otomatis mengirim tiket ke email peserta.
+      operationId: adminVerifyRegistration
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EventSlug'
+        - $ref: '#/components/parameters/RegistrationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/RegistrationStatus'
+                note:
+                  type: string
+                  description: Catatan opsional dari admin (misal alasan penolakan)
+                  maxLength: 500
+      responses:
+        '200':
+          description: Status berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '400':
+          description: Transisi status tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Tidak terautentikasi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Registrasi tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    EventSlug:
+      name: eventSlug
+      in: path
+      required: true
+      description: "Slug unik event (contoh: 40-of-heart-rate-run)"
+      schema:
+        type: string
+        example: 40-of-heart-rate-run
+
+    RegistrationId:
+      name: registrationId
+      in: path
+      required: true
+      description: ID unik registrasi
+      schema:
+        type: string
+        example: reg_01J7XKZT3QABCDEF1234567890
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email akun admin
+          example: admin@amigoscareclub.id
+        password:
+          type: string
+          format: password
+          description: Password akun admin
+          minLength: 8
+          example: "secret123"
+
+    AdminProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID unik admin
+          example: adm_01J7XKZT00000000000000001
+        name:
+          type: string
+          example: Nur Fatchurohman
+        email:
+          type: string
+          format: email
+          example: admin@amigoscareclub.id
+
+    LoginResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: Bearer JWT untuk dipakai di header Authorization pada endpoint admin
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example
+            expires_at:
+              type: string
+              format: date-time
+              description: Waktu kadaluarsa token (ISO 8601 UTC)
+              example: "2026-05-18T09:00:00Z"
+            admin:
+              $ref: '#/components/schemas/AdminProfile'
+
+    RegistrationRequest:
+      type: object
+      required:
+        - name
+        - email
+        - phone
+        - age
+        - coffee_choice
+        - payment_proof
+      properties:
+        name:
+          type: string
+          description: Nama lengkap peserta
+          minLength: 1
+          maxLength: 100
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          description: Email aktif untuk pengiriman tiket
+          example: budi@example.com
+        phone:
+          type: string
+          description: Nomor HP aktif (format Indonesia)
+          pattern: '^(\+62|0)8[0-9]{8,11}$'
+          example: "08123456789"
+        age:
+          type: integer
+          description: Usia peserta (tahun)
+          minimum: 10
+          maximum: 100
+          example: 28
+        coffee_choice:
+          type: string
+          description: Pilihan kopi gratis saat event
+          enum:
+            - Americano
+            - Cappuccino
+            - Latte
+            - Es Kopi Susu
+            - Espresso
+          example: Es Kopi Susu
+        payment_proof:
+          type: string
+          format: binary
+          description: Foto/screenshot bukti transfer. Format jpeg/png/webp, maks. 5 MB.
+
+    Registration:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID unik registrasi
+          example: reg_01J7XKZT3QABCDEF1234567890
+        ticket_number:
+          type: string
+          description: Nomor tiket yang digunakan untuk undian doorprize
+          example: ACR-2026-0042
+        event_slug:
+          type: string
+          example: 40-of-heart-rate-run
+        name:
+          type: string
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          example: budi@example.com
+        phone:
+          type: string
+          example: "08123456789"
+        age:
+          type: integer
+          example: 28
+        coffee_choice:
+          type: string
+          example: Es Kopi Susu
+        status:
+          $ref: '#/components/schemas/RegistrationStatus'
+        payment_proof_url:
+          type: string
+          nullable: true
+          description: URL publik/signed URL bukti pembayaran yang diunggah peserta. Digunakan admin untuk verifikasi manual.
+          example: "https://storage.amigoscareclub.id/proofs/reg_01J7XKZT3Q.jpg"
+        registered_at:
+          type: string
+          format: date-time
+          description: Waktu pendaftaran (ISO 8601 UTC)
+          example: "2026-05-17T09:00:00Z"
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu verifikasi pembayaran oleh admin
+          example: "2026-05-18T10:30:00Z"
+        ticket_sent_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu pengiriman tiket via email (H-1 sebelum acara)
+          example: "2026-05-23T08:00:00Z"
+
+    RegistrationStatus:
+      type: string
+      description: |
+        Status siklus hidup registrasi:
+        - `pending_verification` – baru terdaftar, menunggu admin memverifikasi pembayaran
+        - `verified` – pembayaran terverifikasi, tiket akan dikirim H-1
+        - `rejected` – pembayaran ditolak (misalnya nominal kurang atau bukti tidak valid)
+        - `ticket_sent` – tiket sudah dikirim ke email peserta
+      enum:
+        - pending_verification
+        - verified
+        - rejected
+        - ticket_sent
+      example: pending_verification
+
+    RegistrationResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Registration'
+        meta:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Pendaftaran berhasil! Tiket akan dikirimkan H-1 sebelum acara ke email kamu."
+
+    EventResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            slug:
+              type: string
+              example: 40-of-heart-rate-run
+            title:
+              type: string
+              example: 40% OF HEART RATE RUN – VOL.2
+            date:
+              type: string
+              format: date
+              example: "2026-05-24"
+            time:
+              type: string
+              example: "06:00"
+            timezone:
+              type: string
+              example: Asia/Jakarta
+            location:
+              type: string
+              example: Melkkops Coffee & Eatry
+            distance_km:
+              type: integer
+              example: 5
+            pace:
+              type: string
+              example: Every pace welcome
+            registration_open:
+              type: boolean
+              example: true
+            coffee_options:
+              type: array
+              items:
+                type: string
+              example: [Americano, Cappuccino, Latte, Es Kopi Susu, Espresso]
+            payment:
+              type: object
+              properties:
+                bank:
+                  type: string
+                  example: BCA
+                account_number:
+                  type: string
+                  example: "4061207427"
+                account_name:
+                  type: string
+                  example: Nur Fatchurohman
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 87
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+        total_pages:
+          type: integer
+          example: 5
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Input tidak valid
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: email
+                  message:
+                    type: string
+                    example: Format email tidak valid
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: EVENT_NOT_FOUND
+            message:
+              type: string
+              example: Event dengan slug '40-of-heart-rate-run' tidak ditemukan.

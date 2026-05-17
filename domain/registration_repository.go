@@ -14,4 +14,5 @@ type RegistrationRepository interface {
 	FindByEventAndEmail(ctx context.Context, eventSlug, email string) (*Registration, error)
 	List(ctx context.Context, eventSlug string, filter RegistrationFilter, page, perPage int) ([]*Registration, int, error)
 	Update(ctx context.Context, reg *Registration) error
+	Delete(ctx context.Context, id RegistrationID) error
 }

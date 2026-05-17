@@ -51,7 +51,12 @@ func (uc *CreateRegistrationUseCase) Execute(ctx context.Context, input dto.Crea
 		return dto.CreateRegistrationOutput{}, err
 	}
 	if existing != nil {
-		return dto.CreateRegistrationOutput{}, domain.ErrDuplicateRegistration
+		if existing.Status != domain.StatusRejected {
+			return dto.CreateRegistrationOutput{}, domain.ErrDuplicateRegistration
+		}
+		if err := uc.registrationRepo.Delete(ctx, existing.ID); err != nil {
+			return dto.CreateRegistrationOutput{}, err
+		}
 	}
 
 	id, err := uc.idGen.NewRegistrationID(ctx)

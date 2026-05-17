@@ -108,6 +108,12 @@ func (r *RegistrationRepo) List(ctx context.Context, eventSlug string, filter do
 	return regs, total, nil
 }
 
+// Delete removes a registration by ID.
+func (r *RegistrationRepo) Delete(ctx context.Context, id domain.RegistrationID) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM registrations WHERE id=$1`, string(id))
+	return err
+}
+
 // Update persists changes to an existing registration (status, note, timestamps).
 func (r *RegistrationRepo) Update(ctx context.Context, reg *domain.Registration) error {
 	_, err := r.pool.Exec(ctx, `

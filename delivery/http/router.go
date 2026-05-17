@@ -1,10 +1,11 @@
 package http
 
 import (
-	"github.com/gin-gonic/gin"
 	"myapp/application/serviceInterface"
 	"myapp/delivery/middleware"
 	"myapp/domain"
+
+	"github.com/gin-gonic/gin"
 )
 
 // NewRouter builds and returns the Gin engine with all routes registered under basePath.
@@ -18,6 +19,7 @@ func NewRouter(
 	adminRegHandler *AdminRegistrationHandler,
 ) *gin.Engine {
 	r := gin.New()
+	r.Use(middleware.CORS())
 	r.Use(middleware.Logger())
 	r.Use(gin.Recovery())
 

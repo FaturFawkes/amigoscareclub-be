@@ -21,7 +21,9 @@ type Config struct {
 	S3Region     string
 	Port         string
 	APIBasePath  string
-	TicketPrefix string
+	TicketPrefix  string
+	MailtrapToken string
+	EmailFrom     string
 }
 
 // Load reads configuration from the environment (and optionally a .env file).
@@ -45,7 +47,9 @@ func Load() (Config, error) {
 		S3Region:     getEnv("S3_REGION", "us-east-1"),
 		Port:         getEnv("PORT", "8080"),
 		APIBasePath:  getEnv("API_BASE_PATH", "/v1"),
-		TicketPrefix: getEnv("TICKET_PREFIX", "40% OHHR-VOL.2"),
+		TicketPrefix:  getEnv("TICKET_PREFIX", "40% OHHR-VOL.2"),
+		MailtrapToken: os.Getenv("MAILTRAP_TOKEN"),
+		EmailFrom:     getEnv("EMAIL_FROM", "Amigos Care Club <noreply@amigoscare.club>"),
 	}
 
 	if cfg.DatabaseURL == "" {

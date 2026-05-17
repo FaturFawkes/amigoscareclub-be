@@ -9,11 +9,13 @@ import (
 	"syscall"
 	"time"
 
+	"myapp/application/serviceInterface"
 	"myapp/application/usecase"
 	httpDelivery "myapp/delivery/http"
 	"myapp/infrastructure/auth"
 	"myapp/infrastructure/config"
 	infraDB "myapp/infrastructure/db"
+	infraEmail "myapp/infrastructure/email"
 	"myapp/infrastructure/idgen"
 	"myapp/infrastructure/repository/postgres"
 	infraS3 "myapp/infrastructure/s3"
@@ -49,8 +51,14 @@ func main() {
 
 	realClock := &realClock{}
 
+	// emailNotifier is nil when MAILTRAP_TOKEN is not configured (email sending disabled).
+	var emailNotifier serviceInterface.EmailNotifier
+	if cfg.MailtrapToken != "" {
+		emailNotifier = infraEmail.New(cfg)
+	}
+
 	// Use cases — public
-	createRegUC := usecase.NewCreateRegistrationUseCase(regRepo, eventRepo, storage, nil, idGen, realClock)
+	createRegUC := usecase.NewCreateRegistrationUseCase(regRepo, eventRepo, storage, emailNotifier, idGen, realClock)
 	getRegUC := usecase.NewGetRegistrationUseCase(regRepo)
 	getEventUC := usecase.NewGetEventUseCase(eventRepo)
 
@@ -59,7 +67,7 @@ func main() {
 	meUC := usecase.NewAdminMeUseCase(adminRepo)
 	logoutUC := usecase.NewAdminLogoutUseCase(tokenRepo, jwtSvc)
 	listRegsUC := usecase.NewAdminListRegistrationsUseCase(regRepo)
-	verifyRegUC := usecase.NewAdminVerifyRegistrationUseCase(regRepo, realClock)
+	verifyRegUC := usecase.NewAdminVerifyRegistrationUseCase(regRepo, realClock, emailNotifier)
 
 	// Handlers
 	regHandler := httpDelivery.NewRegistrationHandler(createRegUC, getRegUC)

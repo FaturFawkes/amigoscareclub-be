@@ -85,3 +85,4 @@ func (fs *FileStorage) GetURL(_ context.Context, key string) (string, error) {
 	}
 	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", fs.bucket, key), nil
 }
+

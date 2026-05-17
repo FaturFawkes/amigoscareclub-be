@@ -10,13 +10,14 @@ import (
 
 // AdminVerifyRegistrationUseCase transitions a registration's status.
 type AdminVerifyRegistrationUseCase struct {
-	repo  domain.RegistrationRepository
-	clock serviceInterface.Clock
+	repo          domain.RegistrationRepository
+	clock         serviceInterface.Clock
+	emailNotifier serviceInterface.EmailNotifier
 }
 
-// NewAdminVerifyRegistrationUseCase wires the repository and clock.
-func NewAdminVerifyRegistrationUseCase(repo domain.RegistrationRepository, clock serviceInterface.Clock) *AdminVerifyRegistrationUseCase {
-	return &AdminVerifyRegistrationUseCase{repo: repo, clock: clock}
+// NewAdminVerifyRegistrationUseCase wires the repository, clock, and optional email notifier.
+func NewAdminVerifyRegistrationUseCase(repo domain.RegistrationRepository, clock serviceInterface.Clock, emailNotifier serviceInterface.EmailNotifier) *AdminVerifyRegistrationUseCase {
+	return &AdminVerifyRegistrationUseCase{repo: repo, clock: clock, emailNotifier: emailNotifier}
 }
 
 // Execute applies a status transition (verified or rejected) and persists the change.
@@ -42,6 +43,10 @@ func (uc *AdminVerifyRegistrationUseCase) Execute(ctx context.Context, input dto
 
 	if err := uc.repo.Update(ctx, reg); err != nil {
 		return dto.VerifyRegistrationOutput{}, err
+	}
+
+	if reg.Status == domain.StatusVerified && uc.emailNotifier != nil {
+		_ = uc.emailNotifier.SendVerificationConfirmation(ctx, reg.Runner.Email, reg.Runner.Name, reg.TicketNumber)
 	}
 
 	return dto.VerifyRegistrationOutput{Data: registrationToData(reg)}, nil

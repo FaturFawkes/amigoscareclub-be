@@ -19,8 +19,9 @@ type Config struct {
 	S3AccessKey  string
 	S3SecretKey  string
 	S3Region     string
-	Port         string
-	APIBasePath  string
+	Port          string
+	APIBasePath   string
+	ServerURL     string
 	TicketPrefix  string
 	MailtrapToken string
 	EmailFrom     string
@@ -47,6 +48,7 @@ func Load() (Config, error) {
 		S3Region:     getEnv("S3_REGION", "us-east-1"),
 		Port:         getEnv("PORT", "8080"),
 		APIBasePath:  getEnv("API_BASE_PATH", "/v1"),
+		ServerURL:    getEnv("SERVER_URL", "http://localhost:8080"),
 		TicketPrefix:  getEnv("TICKET_PREFIX", "40% OHHR-VOL.2"),
 		MailtrapToken: os.Getenv("MAILTRAP_TOKEN"),
 		EmailFrom:     getEnv("EMAIL_FROM", "Amigos Care Club <noreply@amigoscare.club>"),

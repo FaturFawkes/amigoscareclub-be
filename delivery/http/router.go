@@ -22,6 +22,7 @@ func NewRouter(
 	r.Use(middleware.CORS())
 	r.Use(middleware.Logger())
 	r.Use(gin.Recovery())
+	r.Static("/public", "./public")
 
 	v1 := r.Group(basePath)
 

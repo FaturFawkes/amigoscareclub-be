@@ -8,8 +8,9 @@ import (
 )
 
 var allowedOrigins = map[string]struct{}{
-	"https://amigoscare.club":           {},
-	"https://amigoscareclub.vercel.app": {},
+	// "https://amigoscare.club":           {},
+	// "https://amigoscareclub.vercel.app": {},
+	"*": {}, // Allow all origins (for development only, remove in production)
 }
 
 func isAllowedOrigin(origin string) bool {

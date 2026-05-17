@@ -2,15 +2,16 @@ package middleware
 
 import (
 	"log"
-	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Logger logs request details for debugging.
-func Logger(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// Logger logs the method, path, status code, and latency of each request.
+func Logger() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		start := time.Now()
-		next.ServeHTTP(w, r)
-		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
-	})
+		c.Next()
+		log.Printf("%s %s %d %s", c.Request.Method, c.Request.URL.Path, c.Writer.Status(), time.Since(start))
+	}
 }

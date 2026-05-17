@@ -2,55 +2,87 @@ package domain
 
 import "time"
 
-// RegistrationID is the identifier for a ticket registration aggregate.
+// RegistrationID is the unique identifier for a registration.
 type RegistrationID string
 
-// Runner is the attendee registering for the event.
-type Runner struct {
-	Name  string
-	Email string
-	Phone string
-}
-
-// Event is the running event being registered for.
-type Event struct {
-	ID       string
-	Name     string
-	Date     time.Time
-	Location string
-}
-
-// TicketCategory is a value object for the race category.
-type TicketCategory string
+// RegistrationStatus represents the lifecycle state of a registration.
+type RegistrationStatus string
 
 const (
-	Category5K           TicketCategory = "5K"
-	Category10K          TicketCategory = "10K"
-	CategoryHalfMarathon TicketCategory = "HALF_MARATHON"
+	StatusPendingVerification RegistrationStatus = "pending_verification"
+	StatusVerified            RegistrationStatus = "verified"
+	StatusRejected            RegistrationStatus = "rejected"
+	StatusTicketSent          RegistrationStatus = "ticket_sent"
 )
 
-// TicketRegistration is the aggregate root.
-type TicketRegistration struct {
-	ID        RegistrationID
-	Runner    Runner
-	Event     Event
-	Category  TicketCategory
-	Paid      bool
-	CreatedAt time.Time
+// Runner holds the personal data of the event participant.
+type Runner struct {
+	Name         string
+	Email        string
+	Phone        string
+	Age          int
+	CoffeeChoice string
 }
 
-// NewTicketRegistration creates a new registration aggregate.
-func NewTicketRegistration(id RegistrationID, runner Runner, event Event, category TicketCategory, createdAt time.Time) *TicketRegistration {
-	return &TicketRegistration{
-		ID:        id,
-		Runner:    runner,
-		Event:     event,
-		Category:  category,
-		CreatedAt: createdAt,
+// Registration is the aggregate root for an event registration.
+type Registration struct {
+	ID              RegistrationID
+	TicketNumber    string
+	EventSlug       string
+	Runner          Runner
+	Status          RegistrationStatus
+	PaymentProofURL string
+	Note            string
+	RegisteredAt    time.Time
+	VerifiedAt      *time.Time
+	TicketSentAt    *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+// NewRegistration creates a new pending registration.
+func NewRegistration(id RegistrationID, ticketNumber, eventSlug string, runner Runner, now time.Time) *Registration {
+	return &Registration{
+		ID:           id,
+		TicketNumber: ticketNumber,
+		EventSlug:    eventSlug,
+		Runner:       runner,
+		Status:       StatusPendingVerification,
+		RegisteredAt: now,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 }
 
-// MarkPaid updates the payment status.
-func (r *TicketRegistration) MarkPaid() {
-	r.Paid = true
+// Verify transitions the registration to verified status.
+func (r *Registration) Verify(now time.Time) error {
+	if r.Status != StatusPendingVerification {
+		return ErrInvalidStatusTransition
+	}
+	r.Status = StatusVerified
+	r.VerifiedAt = &now
+	r.UpdatedAt = now
+	return nil
+}
+
+// Reject transitions the registration to rejected status with an optional note.
+func (r *Registration) Reject(note string, now time.Time) error {
+	if r.Status != StatusPendingVerification {
+		return ErrInvalidStatusTransition
+	}
+	r.Status = StatusRejected
+	r.Note = note
+	r.UpdatedAt = now
+	return nil
+}
+
+// MarkTicketSent transitions a verified registration to ticket_sent.
+func (r *Registration) MarkTicketSent(now time.Time) error {
+	if r.Status != StatusVerified {
+		return ErrInvalidStatusTransition
+	}
+	r.Status = StatusTicketSent
+	r.TicketSentAt = &now
+	r.UpdatedAt = now
+	return nil
 }

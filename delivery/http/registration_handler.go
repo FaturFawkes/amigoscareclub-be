@@ -1,62 +1,88 @@
 package http
 
 import (
-	"encoding/json"
-	"net/http"
+	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"myapp/application/dto"
 	"myapp/application/usecase"
 )
 
-// RegistrationHandler exposes HTTP endpoints for registrations.
+// RegistrationHandler handles public registration endpoints.
 type RegistrationHandler struct {
-	placeUseCase *usecase.PlaceRegistrationUseCase
-	getUseCase   *usecase.GetRegistrationUseCase
+	createUC *usecase.CreateRegistrationUseCase
+	getUC    *usecase.GetRegistrationUseCase
 }
 
-// NewRegistrationHandler creates a handler instance.
+// NewRegistrationHandler wires the use cases.
 func NewRegistrationHandler(
-	placeUseCase *usecase.PlaceRegistrationUseCase,
-	getUseCase *usecase.GetRegistrationUseCase,
+	createUC *usecase.CreateRegistrationUseCase,
+	getUC *usecase.GetRegistrationUseCase,
 ) *RegistrationHandler {
-	return &RegistrationHandler{
-		placeUseCase: placeUseCase,
-		getUseCase:   getUseCase,
-	}
+	return &RegistrationHandler{createUC: createUC, getUC: getUC}
 }
 
-// Place handles POST /registrations.
-func (h *RegistrationHandler) Place(w http.ResponseWriter, r *http.Request) {
-	var input dto.PlaceRegistrationInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "invalid payload", http.StatusBadRequest)
+// Create handles POST /events/:eventSlug/registrations (multipart/form-data).
+func (h *RegistrationHandler) Create(c *gin.Context) {
+	if err := c.Request.ParseMultipartForm(6 << 20); err != nil {
+		respondValidationError(c, "payload", "invalid multipart form")
 		return
 	}
 
-	output, err := h.placeUseCase.Execute(r.Context(), input)
+	name := c.PostForm("name")
+	email := c.PostForm("email")
+	phone := c.PostForm("phone")
+	ageStr := c.PostForm("age")
+	coffeeChoice := c.PostForm("coffee_choice")
+
+	type reqField struct{ name, val string }
+	for _, f := range []reqField{
+		{"name", name}, {"email", email}, {"phone", phone}, {"age", ageStr}, {"coffee_choice", coffeeChoice},
+	} {
+		if f.val == "" {
+			respondValidationError(c, f.name, f.name+" wajib diisi")
+			return
+		}
+	}
+
+	age, err := strconv.Atoi(ageStr)
+	if err != nil || age < 10 || age > 100 {
+		respondValidationError(c, "age", "Usia harus berupa angka antara 10 dan 100")
+		return
+	}
+
+	files := c.Request.MultipartForm.File["payment_proof"]
+	if len(files) == 0 {
+		respondValidationError(c, "payment_proof", "Bukti pembayaran wajib diunggah")
+		return
+	}
+
+	out, err := h.createUC.Execute(c.Request.Context(), dto.CreateRegistrationInput{
+		EventSlug:    c.Param("eventSlug"),
+		Name:         name,
+		Email:        email,
+		Phone:        phone,
+		Age:          age,
+		CoffeeChoice: coffeeChoice,
+		PaymentProof: files[0],
+	})
 	if err != nil {
-		http.Error(w, "failed to register", http.StatusInternalServerError)
+		respondError(c, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(output)
+	respondCreated(c, out)
 }
 
-// Get handles GET /registrations/{id}.
-func (h *RegistrationHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
-	if id == "" {
-		http.Error(w, "missing id", http.StatusBadRequest)
-		return
-	}
-
-	output, err := h.getUseCase.Execute(r.Context(), id)
+// Get handles GET /events/:eventSlug/registrations/:registrationId.
+func (h *RegistrationHandler) Get(c *gin.Context) {
+	out, err := h.getUC.Execute(c.Request.Context(), dto.GetRegistrationInput{
+		EventSlug:      c.Param("eventSlug"),
+		RegistrationID: c.Param("registrationId"),
+	})
 	if err != nil {
-		http.Error(w, "registration not found", http.StatusNotFound)
+		respondError(c, err)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(output)
+	respondOK(c, out)
 }

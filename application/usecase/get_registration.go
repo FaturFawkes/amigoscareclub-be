@@ -7,32 +7,21 @@ import (
 	"myapp/domain"
 )
 
-// GetRegistrationUseCase fetches a registration by id.
+// GetRegistrationUseCase retrieves a single registration by event + ID.
 type GetRegistrationUseCase struct {
 	repo domain.RegistrationRepository
 }
 
-// NewGetRegistrationUseCase wires dependencies.
+// NewGetRegistrationUseCase wires the repository.
 func NewGetRegistrationUseCase(repo domain.RegistrationRepository) *GetRegistrationUseCase {
 	return &GetRegistrationUseCase{repo: repo}
 }
 
-// Execute returns the registration details.
-func (uc *GetRegistrationUseCase) Execute(ctx context.Context, id string) (dto.PlaceRegistrationInput, error) {
-	reg, err := uc.repo.GetByID(ctx, domain.RegistrationID(id))
+// Execute fetches the registration and returns it as a DTO.
+func (uc *GetRegistrationUseCase) Execute(ctx context.Context, input dto.GetRegistrationInput) (dto.GetRegistrationOutput, error) {
+	reg, err := uc.repo.GetByID(ctx, input.EventSlug, domain.RegistrationID(input.RegistrationID))
 	if err != nil {
-		return dto.PlaceRegistrationInput{}, err
+		return dto.GetRegistrationOutput{}, err
 	}
-
-	return dto.PlaceRegistrationInput{
-		RegistrationID: string(reg.ID),
-		RunnerName:     reg.Runner.Name,
-		RunnerEmail:    reg.Runner.Email,
-		RunnerPhone:    reg.Runner.Phone,
-		EventID:        reg.Event.ID,
-		EventName:      reg.Event.Name,
-		EventDate:      reg.Event.Date,
-		EventLocation:  reg.Event.Location,
-		Category:       string(reg.Category),
-	}, nil
+	return dto.GetRegistrationOutput{Data: registrationToData(reg)}, nil
 }

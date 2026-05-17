@@ -83,12 +83,12 @@ var registrationTmpl = template.Must(template.New("registration").Parse(`<!DOCTY
 </html>`))
 
 // SendRegistrationConfirmation sends a "pendaftaran diterima, sedang diproses" email.
-func (n *Notifier) SendRegistrationConfirmation(ctx context.Context, email string, registrationID string) error {
+func (n *Notifier) SendRegistrationConfirmation(ctx context.Context, email, name, registrationID string) error {
 	var buf bytes.Buffer
 	if err := registrationTmpl.Execute(&buf, struct {
 		Name           string
 		RegistrationID string
-	}{Name: email, RegistrationID: registrationID}); err != nil {
+	}{Name: name, RegistrationID: registrationID}); err != nil {
 		return fmt.Errorf("email template: %w", err)
 	}
 	subject := "Pendaftaran Kamu Sedang Diproses — 40% of Heart Rate Run"

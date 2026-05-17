@@ -4,7 +4,7 @@ import "context"
 
 // EmailNotifier sends registration notifications by email.
 type EmailNotifier interface {
-	SendRegistrationConfirmation(ctx context.Context, email string, registrationID string) error
+	SendRegistrationConfirmation(ctx context.Context, email, name, registrationID string) error
 	SendVerificationConfirmation(ctx context.Context, email, name, ticketNumber string) error
 }
 

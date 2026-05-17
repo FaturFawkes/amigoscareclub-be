@@ -101,7 +101,7 @@ func (uc *CreateRegistrationUseCase) Execute(ctx context.Context, input dto.Crea
 	}
 
 	if uc.emailNotifier != nil {
-		_ = uc.emailNotifier.SendRegistrationConfirmation(ctx, input.Email, id)
+		_ = uc.emailNotifier.SendRegistrationConfirmation(ctx, input.Email, input.Name, id)
 	}
 
 	out := dto.CreateRegistrationOutput{Data: registrationToData(reg)}

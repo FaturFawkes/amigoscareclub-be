@@ -45,8 +45,13 @@ func (uc *AdminVerifyRegistrationUseCase) Execute(ctx context.Context, input dto
 		return dto.VerifyRegistrationOutput{}, err
 	}
 
-	if reg.Status == domain.StatusVerified && uc.emailNotifier != nil {
-		_ = uc.emailNotifier.SendVerificationConfirmation(ctx, reg.Runner.Email, reg.Runner.Name, reg.TicketNumber)
+	if uc.emailNotifier != nil {
+		switch reg.Status {
+		case domain.StatusVerified:
+			_ = uc.emailNotifier.SendVerificationConfirmation(ctx, reg.Runner.Email, reg.Runner.Name, reg.TicketNumber)
+		case domain.StatusRejected:
+			_ = uc.emailNotifier.SendRejectionNotification(ctx, reg.Runner.Email, reg.Runner.Name, reg.Note)
+		}
 	}
 
 	return dto.VerifyRegistrationOutput{Data: registrationToData(reg)}, nil

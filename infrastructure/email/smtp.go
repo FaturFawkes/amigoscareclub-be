@@ -149,6 +149,72 @@ var verificationTmpl = template.Must(template.New("verification").Parse(`<!DOCTY
 </body>
 </html>`))
 
+var rejectionTmpl = template.Must(template.New("rejection").Parse(`<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrasi Ditolak</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f0e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0e8;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#fffef9;border-radius:24px;overflow:hidden;border:1px solid rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background-color:#1a1a1a;padding:32px 40px;">
+              <p style="margin:0;font-size:11px;font-family:monospace;color:#c8f55a;letter-spacing:0.1em;text-transform:uppercase;">Amigos Care Club</p>
+              <h1 style="margin:8px 0 0;font-size:24px;color:#fffef9;font-weight:800;letter-spacing:-0.02em;">Registrasi Tidak Disetujui</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="margin:0 0 16px;font-size:15px;color:#1a1a1a;line-height:1.6;">Halo, <strong>{{.Name}}</strong>.</p>
+              <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
+                Mohon maaf, registrasi kamu untuk <strong>40% of Heart Rate Run — Vol.2</strong> tidak dapat kami setujui.
+              </p>
+              {{if .Note}}
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0e8;border-radius:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Alasan</p>
+                    <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.6;">{{.Note}}</p>
+                  </td>
+                </tr>
+              </table>
+              {{end}}
+              <p style="margin:0;font-size:14px;color:#555;line-height:1.6;">
+                Jika kamu memiliki pertanyaan, silakan hubungi kami melalui media sosial atau email kami.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 40px;border-top:1px solid rgba(0,0,0,0.06);">
+              <p style="margin:0;font-size:12px;font-family:monospace;color:#999;">
+                Tim Amigos Care Club &mdash; Run With Fun
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`))
+
+// SendRejectionNotification sends a rejection email with the admin's note to the registrant.
+func (n *Notifier) SendRejectionNotification(ctx context.Context, email, name, note string) error {
+	var buf bytes.Buffer
+	if err := rejectionTmpl.Execute(&buf, struct {
+		Name string
+		Note string
+	}{Name: name, Note: note}); err != nil {
+		return fmt.Errorf("email template: %w", err)
+	}
+	subject := "Update Pendaftaran Kamu — 40% of Heart Rate Run"
+	return n.send(ctx, email, subject, buf.String())
+}
+
 // SendVerificationConfirmation sends a confirmation email after admin verifies a registration.
 func (n *Notifier) SendVerificationConfirmation(ctx context.Context, email, name, ticketNumber string) error {
 	var buf bytes.Buffer

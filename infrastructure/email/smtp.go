@@ -58,7 +58,7 @@ var registrationTmpl = template.Must(template.New("registration").Parse(`<!DOCTY
                 <tr>
                   <td style="padding:20px 24px;">
                     <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Event</p>
-                    <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#1a1a1a;">40% of Heart Rate Run — Vol.2</p>
+                    <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#1a1a1a;">Steady and Slow (Soft Opening Run by Melkkops x Amigos)</p>
                     <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">ID Registrasi</p>
                     <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;font-family:monospace;">{{.RegistrationID}}</p>
                   </td>
@@ -92,7 +92,7 @@ func (n *Notifier) SendRegistrationConfirmation(ctx context.Context, email, name
 	}{LogoURL: n.logoURL, Name: name, RegistrationID: registrationID}); err != nil {
 		return fmt.Errorf("email template: %w", err)
 	}
-	subject := "Pendaftaran Kamu Sedang Diproses — 40% of Heart Rate Run"
+	subject := "Pendaftaran Kamu Sedang Diproses — Steady and Slow Run"
 	return n.send(ctx, email, subject, buf.String())
 }
 
@@ -118,7 +118,7 @@ var rejectionTmpl = template.Must(template.New("rejection").Parse(`<!DOCTYPE htm
             <td style="padding:36px 40px;">
               <p style="margin:0 0 16px;font-size:15px;color:#1a1a1a;line-height:1.6;">Halo, <strong>{{.Name}}</strong>.</p>
               <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
-                Mohon maaf, registrasi kamu untuk <strong>40% of Heart Rate Run — Vol.2</strong> tidak dapat kami setujui.
+                Mohon maaf, registrasi kamu untuk <strong>Steady and Slow (Soft Opening Run by Melkkops x Amigos)</strong> tidak dapat kami setujui.
               </p>
               {{if .Note}}
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0e8;border-radius:16px;margin-bottom:24px;">
@@ -157,7 +157,7 @@ func (n *Notifier) SendRejectionNotification(ctx context.Context, email, name, n
 	}{LogoURL: n.logoURL, Name: name, Note: note}); err != nil {
 		return fmt.Errorf("email template: %w", err)
 	}
-	subject := "Update Pendaftaran Kamu — 40% of Heart Rate Run"
+	subject := "Update Pendaftaran Kamu — Steady and Slow Run"
 	return n.send(ctx, email, subject, buf.String())
 }
 
@@ -189,7 +189,7 @@ var verificationTmpl = template.Must(template.New("verification").Parse(`<!DOCTY
                 <tr>
                   <td style="padding:20px 24px;">
                     <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Event</p>
-                    <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#1a1a1a;">40% of Heart Rate Run — Vol.2</p>
+                    <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#1a1a1a;">Steady and Slow (Soft Opening Run by Melkkops x Amigos)</p>
                     <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Nomor Tiket</p>
                     <p style="margin:0;font-size:18px;font-weight:800;color:#1a1a1a;font-family:monospace;letter-spacing:0.05em;">{{.TicketNumber}}</p>
                   </td>
@@ -223,7 +223,7 @@ func (n *Notifier) SendVerificationConfirmation(ctx context.Context, email, name
 	}{LogoURL: n.logoURL, Name: name, TicketNumber: ticketNumber}); err != nil {
 		return fmt.Errorf("email template: %w", err)
 	}
-	subject := "Registrasi Kamu Sudah Terverifikasi! — 40% of Heart Rate Run"
+	subject := "Registrasi Kamu Sudah Terverifikasi! — Steady and Slow Run"
 	return n.send(ctx, email, subject, buf.String())
 }
 

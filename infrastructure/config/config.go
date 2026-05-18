@@ -49,7 +49,7 @@ func Load() (Config, error) {
 		Port:         getEnv("PORT", "8080"),
 		APIBasePath:  getEnv("API_BASE_PATH", "/v1"),
 		ServerURL:    getEnv("SERVER_URL", "http://localhost:8080"),
-		TicketPrefix:  getEnv("TICKET_PREFIX", "40% OHHR-VOL.2"),
+		TicketPrefix:  getEnv("TICKET_PREFIX", "SNS-2026"),
 		MailtrapToken: os.Getenv("MAILTRAP_TOKEN"),
 		EmailFrom:     getEnv("EMAIL_FROM", "Amigos Care Club <noreply@amigoscare.club>"),
 	}

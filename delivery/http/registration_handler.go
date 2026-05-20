@@ -1,7 +1,7 @@
 package http
 
 import (
-	"strconv"
+	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
 	"myapp/application/dto"
@@ -22,49 +22,49 @@ func NewRegistrationHandler(
 	return &RegistrationHandler{createUC: createUC, getUC: getUC}
 }
 
-// Create handles POST /events/:eventSlug/registrations (multipart/form-data).
+type createRegistrationRequest struct {
+	Name  string `json:"name"  form:"name"`
+	Email string `json:"email" form:"email"`
+	Phone string `json:"phone" form:"phone"`
+	Age   int    `json:"age"   form:"age"`
+}
+
+// Create handles POST /events/:eventSlug/registrations.
 func (h *RegistrationHandler) Create(c *gin.Context) {
-	if err := c.Request.ParseMultipartForm(6 << 20); err != nil {
-		respondValidationError(c, "payload", "invalid multipart form")
+	var req createRegistrationRequest
+	if err := c.ShouldBind(&req); err != nil {
+		respondValidationError(c, "payload", "request tidak valid")
 		return
 	}
 
-	name := c.PostForm("name")
-	email := c.PostForm("email")
-	phone := c.PostForm("phone")
-	ageStr := c.PostForm("age")
-	coffeeChoice := c.PostForm("coffee_choice")
-
 	type reqField struct{ name, val string }
 	for _, f := range []reqField{
-		{"name", name}, {"email", email}, {"phone", phone}, {"age", ageStr}, {"coffee_choice", coffeeChoice},
+		{"name", req.Name},
+		{"email", req.Email},
+		{"phone", req.Phone},
 	} {
 		if f.val == "" {
 			respondValidationError(c, f.name, f.name+" wajib diisi")
 			return
 		}
 	}
-
-	age, err := strconv.Atoi(ageStr)
-	if err != nil || age < 10 || age > 100 {
+	if req.Age < 10 || req.Age > 100 {
 		respondValidationError(c, "age", "Usia harus berupa angka antara 10 dan 100")
 		return
 	}
 
-	files := c.Request.MultipartForm.File["payment_proof"]
-	if len(files) == 0 {
-		respondValidationError(c, "payment_proof", "Bukti pembayaran wajib diunggah")
-		return
+	var paymentProof *multipart.FileHeader
+	if fh, err := c.FormFile("payment_proof"); err == nil {
+		paymentProof = fh
 	}
 
 	out, err := h.createUC.Execute(c.Request.Context(), dto.CreateRegistrationInput{
 		EventSlug:    c.Param("eventSlug"),
-		Name:         name,
-		Email:        email,
-		Phone:        phone,
-		Age:          age,
-		CoffeeChoice: coffeeChoice,
-		PaymentProof: files[0],
+		Name:         req.Name,
+		Email:        req.Email,
+		Phone:        req.Phone,
+		Age:          req.Age,
+		PaymentProof: paymentProof,
 	})
 	if err != nil {
 		respondError(c, err)

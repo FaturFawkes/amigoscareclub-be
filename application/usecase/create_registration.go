@@ -110,6 +110,6 @@ func (uc *CreateRegistrationUseCase) Execute(ctx context.Context, input dto.Crea
 	}
 
 	out := dto.CreateRegistrationOutput{Data: registrationToData(reg)}
-	out.Meta.Message = "Pendaftaran berhasil! Tim kami akan memverifikasi pembayaranmu dan mengirimkan email konfirmasi tiket setelah diverifikasi oleh admin."
+	out.Meta.Message = "Pendaftaran berhasil! Tim kami akan mengirimkan email konfirmasi tiket setelah diverifikasi oleh admin."
 	return out, nil
 }

@@ -36,7 +36,7 @@ func (r *RegistrationRepo) Save(ctx context.Context, reg *domain.Registration) e
 			created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
 		string(reg.ID), reg.TicketNumber, reg.EventSlug,
-		reg.Runner.Name, reg.Runner.Email, reg.Runner.Phone, reg.Runner.Age, reg.Runner.CoffeeChoice,
+		reg.Runner.Name, reg.Runner.Email, reg.Runner.Phone, reg.Runner.Age, nullableString(reg.Runner.CoffeeChoice),
 		string(reg.Status),
 		nullableString(reg.PaymentProofURL), nullableString(reg.Note),
 		reg.RegisteredAt, reg.VerifiedAt, reg.TicketSentAt,
@@ -131,7 +131,8 @@ func (r *RegistrationRepo) Update(ctx context.Context, reg *domain.Registration)
 func scanRegistration(scan func(dest ...any) error) (*domain.Registration, error) {
 	var (
 		idStr, ticketNumber, eventSlug                    string
-		name, email, phone, coffeeChoice, statusStr       string
+		name, email, phone, statusStr                     string
+		coffeeChoice                                      *string
 		age                                               int
 		paymentProofURL, note                             *string
 		registeredAt, createdAt, updatedAt                time.Time
@@ -157,11 +158,10 @@ func scanRegistration(scan func(dest ...any) error) (*domain.Registration, error
 		TicketNumber: ticketNumber,
 		EventSlug:    eventSlug,
 		Runner: domain.Runner{
-			Name:         name,
-			Email:        email,
-			Phone:        phone,
-			Age:          age,
-			CoffeeChoice: coffeeChoice,
+			Name:  name,
+			Email: email,
+			Phone: phone,
+			Age:   age,
 		},
 		Status:       domain.RegistrationStatus(statusStr),
 		RegisteredAt: registeredAt,

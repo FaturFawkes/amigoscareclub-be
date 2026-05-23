@@ -108,6 +108,27 @@ func (r *RegistrationRepo) List(ctx context.Context, eventSlug string, filter do
 	return regs, total, nil
 }
 
+// ListEligibleForTicket returns all registrations with status verified or ticket_sent for an event.
+func (r *RegistrationRepo) ListEligibleForTicket(ctx context.Context, eventSlug string) ([]*domain.Registration, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT`+registrationSelectCols+` FROM registrations WHERE event_slug=$1 AND status IN ('verified','ticket_sent') ORDER BY registered_at ASC`,
+		eventSlug)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var regs []*domain.Registration
+	for rows.Next() {
+		reg, err := scanRegistration(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		regs = append(regs, reg)
+	}
+	return regs, rows.Err()
+}
+
 // Delete removes a registration by ID.
 func (r *RegistrationRepo) Delete(ctx context.Context, id domain.RegistrationID) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM registrations WHERE id=$1`, string(id))

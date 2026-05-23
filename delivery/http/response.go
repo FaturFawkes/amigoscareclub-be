@@ -65,6 +65,10 @@ func respondError(c *gin.Context, err error) {
 		c.JSON(http.StatusBadRequest, errorBody{Error: errorDetail{
 			Code: "INVALID_STATUS_TRANSITION", Message: "Transisi status tidak valid.",
 		}})
+	case errors.Is(err, domain.ErrInvalidTicketStatus):
+		c.JSON(http.StatusBadRequest, errorBody{Error: errorDetail{
+			Code: "INVALID_STATUS", Message: "Status registrasi harus verified atau ticket_sent untuk kirim ulang tiket.",
+		}})
 	case errors.Is(err, domain.ErrInvalidCredentials):
 		c.JSON(http.StatusUnauthorized, errorBody{Error: errorDetail{
 			Code: "INVALID_CREDENTIALS", Message: "Email atau password salah.",

@@ -8,6 +8,7 @@ var (
 	ErrAdminNotFound           = errors.New("admin not found")
 	ErrDuplicateRegistration   = errors.New("duplicate registration")
 	ErrInvalidStatusTransition = errors.New("invalid status transition")
+	ErrInvalidTicketStatus     = errors.New("invalid ticket status")
 	ErrInvalidCredentials      = errors.New("invalid credentials")
 	ErrUnauthorized            = errors.New("unauthorized")
 	ErrFileTooLarge            = errors.New("file too large")

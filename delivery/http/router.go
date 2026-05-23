@@ -40,6 +40,8 @@ func NewRouter(
 		admin.POST("/admin/auth/logout", adminAuthHandler.Logout)
 		admin.GET("/admin/events/:eventSlug/registrations", adminRegHandler.List)
 		admin.PATCH("/admin/events/:eventSlug/registrations/:registrationId/verify", adminRegHandler.Verify)
+		admin.POST("/admin/events/:eventSlug/registrations/:registrationId/resend-ticket", adminRegHandler.ResendTicket)
+		admin.POST("/admin/events/:eventSlug/registrations/resend-all-tickets", adminRegHandler.ResendAllTickets)
 	}
 
 	return r

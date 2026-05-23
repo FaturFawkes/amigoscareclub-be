@@ -227,6 +227,107 @@ func (n *Notifier) SendVerificationConfirmation(ctx context.Context, email, name
 	return n.send(ctx, email, subject, buf.String())
 }
 
+var ticketTmpl = template.Must(template.New("ticket").Parse(`<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiket Event</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f0e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0e8;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#fffef9;border-radius:24px;overflow:hidden;border:1px solid rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background-color:#1a1a1a;padding:32px 40px;text-align:center;">
+              <img src="{{.LogoURL}}" alt="Amigos Care Club" width="120" style="display:block;margin:0 auto 16px;max-width:120px;">
+              <h1 style="margin:0;font-size:22px;color:#fffef9;font-weight:800;letter-spacing:-0.02em;">Tiket Kamu Sudah Siap! 🎟️</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="margin:0 0 16px;font-size:15px;color:#1a1a1a;line-height:1.6;">Halo, <strong>{{.Name}}</strong>!</p>
+              <p style="margin:0 0 24px;font-size:15px;color:#444;line-height:1.6;">
+                Berikut adalah tiket resmi kamu untuk event yang akan datang. Simpan nomor tiket ini — sekaligus menjadi <strong>nomor doorprize</strong> kamu!
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#1a1a1a;border-radius:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:24px;text-align:center;">
+                    <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Nomor Tiket / Doorprize</p>
+                    <p style="margin:0;font-size:32px;font-weight:900;color:#fffef9;font-family:monospace;letter-spacing:0.1em;">{{.TicketNumber}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0e8;border-radius:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Event</p>
+                    <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#1a1a1a;">{{.EventTitle}}</p>
+                    <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Tanggal</p>
+                    <p style="margin:0 0 16px;font-size:14px;font-weight:600;color:#1a1a1a;">{{.EventDate}}</p>
+                    <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Waktu</p>
+                    <p style="margin:0 0 16px;font-size:14px;font-weight:600;color:#1a1a1a;">{{.EventTime}}</p>
+                    <p style="margin:0 0 4px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Lokasi</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">{{.EventLocation}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0e8;border-radius:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Yang Kamu Dapatkan</p>
+                    <p style="margin:0 0 8px;font-size:14px;color:#1a1a1a;line-height:1.6;">☕ <strong>Promo Coffee</strong> — nikmati promo spesial dari Melkkops</p>
+                    <p style="margin:0 0 8px;font-size:14px;color:#1a1a1a;line-height:1.6;">🥐 <strong>Refreshment</strong> — snack &amp; minuman untuk semangat lari</p>
+                    <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.6;">🎁 <strong>Doorprize</strong> — kesempatan menang hadiah menarik</p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;font-size:14px;color:#555;line-height:1.6;">Sampai jumpa di garis start! 🏃</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 40px;border-top:1px solid rgba(0,0,0,0.06);">
+              <p style="margin:0;font-size:12px;font-family:monospace;color:#999;">Tim Amigos Care Club &mdash; Run With Fun</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`))
+
+// SendTicket sends the event ticket email with ticket number and event details.
+func (n *Notifier) SendTicket(ctx context.Context, email, name, ticketNumber, eventTitle, eventDate, eventTime, eventLocation string) error {
+	var buf bytes.Buffer
+	if err := ticketTmpl.Execute(&buf, struct {
+		LogoURL       string
+		Name          string
+		TicketNumber  string
+		EventTitle    string
+		EventDate     string
+		EventTime     string
+		EventLocation string
+	}{
+		LogoURL:       n.logoURL,
+		Name:          name,
+		TicketNumber:  ticketNumber,
+		EventTitle:    eventTitle,
+		EventDate:     eventDate,
+		EventTime:     eventTime,
+		EventLocation: eventLocation,
+	}); err != nil {
+		return fmt.Errorf("email template: %w", err)
+	}
+	subject := "Tiket Kamu untuk " + eventTitle
+	return n.send(ctx, email, subject, buf.String())
+}
+
 type mailtrapAddress struct {
 	Email string `json:"email"`
 	Name  string `json:"name,omitempty"`

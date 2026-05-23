@@ -86,3 +86,15 @@ func (r *Registration) MarkTicketSent(now time.Time) error {
 	r.UpdatedAt = now
 	return nil
 }
+
+// MarkTicketResent updates ticket_sent_at and sets status to ticket_sent.
+// Valid for registrations in verified or ticket_sent status.
+func (r *Registration) MarkTicketResent(now time.Time) error {
+	if r.Status != StatusVerified && r.Status != StatusTicketSent {
+		return ErrInvalidTicketStatus
+	}
+	r.Status = StatusTicketSent
+	r.TicketSentAt = &now
+	r.UpdatedAt = now
+	return nil
+}

@@ -87,3 +87,28 @@ type VerifyRegistrationInput struct {
 type VerifyRegistrationOutput struct {
 	Data RegistrationData `json:"data"`
 }
+
+// ResendTicketInput carries identifiers for the resend-ticket operation.
+type ResendTicketInput struct {
+	EventSlug      string
+	RegistrationID string
+}
+
+// ResendTicketOutput holds the recipient email address.
+type ResendTicketOutput struct {
+	Data struct {
+		Email string `json:"email"`
+	} `json:"data"`
+}
+
+// ResendAllTicketsInput carries the event slug for bulk resend.
+type ResendAllTicketsInput struct {
+	EventSlug string
+}
+
+// ResendAllTicketsOutput holds the number of emails dispatched.
+type ResendAllTicketsOutput struct {
+	Data struct {
+		Sent int `json:"sent"`
+	} `json:"data"`
+}

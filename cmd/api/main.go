@@ -68,12 +68,14 @@ func main() {
 	logoutUC := usecase.NewAdminLogoutUseCase(tokenRepo, jwtSvc)
 	listRegsUC := usecase.NewAdminListRegistrationsUseCase(regRepo)
 	verifyRegUC := usecase.NewAdminVerifyRegistrationUseCase(regRepo, realClock, emailNotifier)
+	resendTicketUC := usecase.NewAdminResendTicketUseCase(regRepo, eventRepo, realClock, emailNotifier)
+	resendAllTicketsUC := usecase.NewAdminResendAllTicketsUseCase(regRepo, eventRepo, realClock, emailNotifier)
 
 	// Handlers
 	regHandler := httpDelivery.NewRegistrationHandler(createRegUC, getRegUC)
 	eventHandler := httpDelivery.NewEventHandler(getEventUC)
 	adminAuthHandler := httpDelivery.NewAdminAuthHandler(loginUC, meUC, logoutUC)
-	adminRegHandler := httpDelivery.NewAdminRegistrationHandler(listRegsUC, verifyRegUC)
+	adminRegHandler := httpDelivery.NewAdminRegistrationHandler(listRegsUC, verifyRegUC, resendTicketUC, resendAllTicketsUC)
 
 	router := httpDelivery.NewRouter(cfg.APIBasePath, jwtSvc, tokenRepo, regHandler, eventHandler, adminAuthHandler, adminRegHandler)
 

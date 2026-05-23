@@ -7,6 +7,7 @@ type EmailNotifier interface {
 	SendRegistrationConfirmation(ctx context.Context, email, name, registrationID string) error
 	SendVerificationConfirmation(ctx context.Context, email, name, ticketNumber string) error
 	SendRejectionNotification(ctx context.Context, email, name, note string) error
+	SendTicket(ctx context.Context, email, name, ticketNumber, eventTitle, eventDate, eventTime, eventLocation string) error
 }
 
 // SMSNotifier sends registration notifications by SMS.

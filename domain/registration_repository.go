@@ -13,6 +13,7 @@ type RegistrationRepository interface {
 	GetByID(ctx context.Context, eventSlug string, id RegistrationID) (*Registration, error)
 	FindByEventAndEmail(ctx context.Context, eventSlug, email string) (*Registration, error)
 	List(ctx context.Context, eventSlug string, filter RegistrationFilter, page, perPage int) ([]*Registration, int, error)
+	ListEligibleForTicket(ctx context.Context, eventSlug string) ([]*Registration, error)
 	Update(ctx context.Context, reg *Registration) error
 	Delete(ctx context.Context, id RegistrationID) error
 }
